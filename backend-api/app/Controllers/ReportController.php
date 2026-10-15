@@ -16,15 +16,15 @@ class ReportController extends ResourceController
      */
     public function index()
     {
-    $reportModel = new \App\Models\ReportModel();
-    
-    // Mengambil semua kolom dari tabel reports, dan hanya mengambil bukti_gambar dari tabel report_images
-    $data = $reportModel->select('reports.id, reports.user_id, reports.category_id, reports.judul_laporan, reports.isi_laporan, reports.status, reports.created_at, report_images.bukti_gambar')
-                        ->join('report_images', 'report_images.report_id = reports.id', 'left')
-                        ->orderBy('reports.id', 'DESC')
-                        ->findAll();
+        $reportModel = new \App\Models\ReportModel();
+        
+        // Mengambil semua kolom dari tabel reports, dan hanya mengambil bukti_gambar dari tabel report_images
+        $data = $reportModel->select('reports.id, reports.user_id, reports.category_id, reports.judul_laporan, reports.isi_laporan, reports.status, reports.created_at, report_images.bukti_gambar')
+                            ->join('report_images', 'report_images.report_id = reports.id', 'left')
+                            ->orderBy('reports.id', 'DESC')
+                            ->findAll();
 
-    return $this->respond($data, 200);
+        return $this->respond($data, 200);
     }
 
     /**
@@ -56,7 +56,7 @@ class ReportController extends ResourceController
             // Berikan nama acak unik agar file tidak bentrok di folder uploads
             $newName = $img->getRandomName();
             
-            // Pindahkan file fisik gambar ke folder public/uploads/ yang kita buat di Langkah 2
+            // Pindahkan file fisik gambar ke folder public/uploads/
             $img->move(ROOTPATH . 'public/uploads', $newName);
             
             // Masukkan catatan nama gambar ke tabel baru 'report_images'
@@ -71,5 +71,37 @@ class ReportController extends ResourceController
             'status'  => 201,
             'message' => 'Laporan aduan beserta bukti gambar berhasil tersimpan!'
         ]);
+    }
+
+    /**
+     * 3. MEMPERBARUI STATUS LAPORAN (Proses / Selesai)
+     * Endpoint: PUT /reports/{id}
+     */
+    public function update($id = null)
+    {
+        $reportModel = new ReportModel();
+
+        // Cek apakah data laporan dengan ID tersebut ada
+        $report = $reportModel->find($id);
+        if (!$report) {
+            return $this->failNotFound('Data laporan tidak ditemukan.');
+        }
+
+        // Tangkap data status yang dikirimkan dari frontend (mendukung JSON maupun URL-encoded)
+        $status = $this->request->getVar('status');
+
+        if (!$status) {
+            return $this->fail('Status tidak boleh kosong.', 400);
+        }
+
+        // Update kolom status di tabel reports
+        $reportModel->update($id, [
+            'status' => $status
+        ]);
+
+        return $this->respond([
+            'status'  => 200,
+            'message' => 'Status laporan berhasil diperbarui menjadi ' . $status
+        ], 200);
     }
 }

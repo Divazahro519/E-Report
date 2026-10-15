@@ -11,3 +11,4 @@ $routes->post('reports', 'ReportController::create', ['filter' => 'auth']);
 $routes->options('(:any)', 'AuthController::index');
 $routes->put('reports/(:num)', 'ReportController::update/$1', ['filter' => 'auth']);
 $routes->delete('reports/(:num)', 'ReportController::delete/$1', ['filter' => 'auth']);
+$routes->resource('reports', ['controller' => 'ReportController']);

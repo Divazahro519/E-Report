@@ -5,7 +5,7 @@ const Dashboard = {
             reports: [],
             showModal: false,
             newReport: { judul_laporan: '', isi_laporan: '', category_id: 1 },
-            selectedFile: null // Tempat menyimpan file gambar sementara sebelum dikirim
+            selectedFile: null
         } 
     },
     template: `
@@ -73,9 +73,9 @@ const Dashboard = {
                                     </span>
                                 </td>
                                 <td class="p-5 text-center space-x-1 whitespace-nowrap">
-                                    <button @click="updateStatus(r.id, 'Proses')" class="bg-amber-400 hover:bg-amber-500 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl transition-all">⚙️ Proses</button>
-                                    <button @click="updateStatus(r.id, 'Selesai')" class="bg-emerald-400 hover:bg-emerald-500 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl transition-all">✓ Selesai</button>
-                                    <button @click="deleteReport(r.id)" class="bg-rose-400 hover:bg-rose-500 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl transition-all">🗑️</button>
+                                    <button @click="updateStatus(r.id, 'Proses')" class="bg-amber-400 hover:bg-amber-500 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl transition-all cursor-pointer">⚙️ Proses</button>
+                                    <button @click="updateStatus(r.id, 'Selesai')" class="bg-emerald-400 hover:bg-emerald-500 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl transition-all cursor-pointer">✓ Selesai</button>
+                                    <button @click="deleteReport(r.id)" class="bg-rose-400 hover:bg-rose-500 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl transition-all cursor-pointer">🗑️</button>
                                 </td>
                             </tr>
                         </tbody>
@@ -119,13 +119,14 @@ const Dashboard = {
     `,
     methods: {
         loadReports() {
-            axios.get(API_URL + 'reports').then(res => this.reports = res.data);
+            axios.get(API_URL + 'reports')
+                .then(res => this.reports = res.data)
+                .catch(err => console.error("Gagal memuat data laporan:", err));
         },
         handleFileUpload(event) {
-            this.selectedFile = event.target.files[0]; // Menyimpan file gambar pilihan user ke data Vue
+            this.selectedFile = event.target.files[0];
         },
         submitReport() {
-            // Mengubah format pengiriman menjadi FormData agar bisa mengangkut file fisik gambar
             const formData = new FormData();
             formData.append('judul_laporan', this.newReport.judul_laporan);
             formData.append('isi_laporan', this.newReport.isi_laporan);
@@ -136,22 +137,37 @@ const Dashboard = {
             }
 
             axios.post(API_URL + 'reports', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' } // Set header khusus multipart-form
+                headers: { 'Content-Type': 'multipart/form-data' }
             })
             .then(() => {
                 this.showModal = false;
                 this.newReport = { judul_laporan: '', isi_laporan: '', category_id: 1 };
                 this.selectedFile = null;
-                this.loadReports(); // Muat ulang tabel otomatis
+                this.loadReports();
             })
             .catch(err => alert("Gagal menyimpan laporan baru."));
         },
         updateStatus(id, status) {
-            axios.put(API_URL + 'reports/' + id, { status }).then(() => this.loadReports());
+            // Menggunakan URLSearchParams agar data ter-parsing dengan sempurna di backend CodeIgniter
+            const data = new URLSearchParams();
+            data.append('status', status);
+
+            axios.put(API_URL + 'reports/' + id, data, {
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+            })
+            .then(() => {
+                this.loadReports();
+            })
+            .catch(err => {
+                console.error("Gagal update status:", err);
+                alert("Gagal memperbarui status laporan. Periksa koneksi atau backend API.");
+            });
         },
         deleteReport(id) {
             if (confirm('Yakin ingin menghapus laporan ini secara permanen?')) {
-                axios.delete(API_URL + 'reports/' + id).then(() => this.loadReports());
+                axios.delete(API_URL + 'reports/' + id)
+                    .then(() => this.loadReports())
+                    .catch(err => alert("Gagal menghapus laporan."));
             }
         }
     },
